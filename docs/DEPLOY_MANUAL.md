@@ -94,10 +94,14 @@
 | APIキー | 用途 | 取得先 |
 |---------|------|--------|
 | Gemini API Key | AI構成・執筆生成 | [Google AI Studio](https://aistudio.google.com/) |
-| Custom Search API Key | 検索機能 | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
-| Google Search Engine ID | カスタム検索 | [Programmable Search Engine](https://programmablesearchengine.google.com/) |
+| Custom Search API Key | 競合調査（推奨） | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
+| Google Search Engine ID | 上記と一緒に使う | [Programmable Search Engine](https://programmablesearchengine.google.com/) |
+| Serper API Key | 競合調査（Custom Searchが使えない場合の代替） | [Serper](https://serper.dev) |
 | OpenAI API Key | GPT-5 最終校閲（オプション） | [OpenAI Platform](https://platform.openai.com/) |
 | Supabase URL + Anon Key | 一次情報DB（オプション） | [Supabase](https://supabase.com/) |
+
+> **競合調査の検索APIについて**
+> Custom Search API Key + Search Engine ID の組み合わせが推奨ですが、新規GCPプロジェクトでCustom Search APIを有効化できない場合（403エラー）は、代わりに Serper API を使用してください。どちらか一方を設定すれば競合調査が動作します。
 
 ---
 
@@ -198,12 +202,18 @@ APIキーなどの機密情報をSecret Managerに保存します。
 
 #### 競合分析機能用シークレット（フル自動モードを使う場合は必須）
 
-競合分析（Google検索で上位サイトを取得）を使用する場合は、以下のシークレットが必要です：
+競合分析（Google検索で上位サイトを取得）を使用する場合は、以下の**いずれか**を設定してください：
+
+**方法A: Google Custom Search API（推奨）**
 
 | シークレット名 | 説明 | 取得先 |
 |---------------|------|--------|
 | `GOOGLE_API_KEY` | Google API用キー（下記参照） | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
 | `GOOGLE_SEARCH_ENGINE_ID` | カスタム検索エンジンID | [Programmable Search Engine](https://programmablesearchengine.google.com/) |
+
+> **取得手順**:
+> 1. Google Cloud Console → APIとサービス → 認証情報 → APIキーを作成
+> 2. Programmable Search Engine で検索エンジンを作成 → 検索エンジンID（cx）をコピー
 
 > **⚠️ 重要: GOOGLE_API_KEYの用途**
 >
@@ -215,9 +225,15 @@ APIキーなどの機密情報をSecret Managerに保存します。
 > - 「APIとサービス」→「ライブラリ」→「Custom Search API」→ 有効にする
 > - 「APIとサービス」→「ライブラリ」→「Google Drive API」→ 有効にする
 
-> **取得手順**:
-> 1. Google Cloud Console → APIとサービス → 認証情報 → APIキーを作成
-> 2. Programmable Search Engine で検索エンジンを作成 → 検索エンジンID（cx）をコピー
+**方法B: Serper API（Custom Search APIが使えない場合）**
+
+新規GCPプロジェクトでCustom Search APIを有効化できない場合（403エラー）は、Serper APIを使用してください。
+
+| シークレット名 | 説明 | 取得先 |
+|---------------|------|--------|
+| `SERPER_API_KEY` | Serper API認証キー | [serper.dev](https://serper.dev) で登録（2,500クレジット無料） |
+
+> **注意**: `SERPER_API_KEY` が設定されている場合、Custom Search APIよりも優先されます。
 
 #### その他オプションシークレット
 
@@ -722,12 +738,20 @@ Cloud Runで以下の環境変数を設定します。
 
 #### 競合分析機能用（フル自動モードを使う場合は必須）
 
-**「シークレットを参照」** で以下を追加：
+STEP 3 で設定した検索APIに応じて、**いずれか**を追加してください：
+
+**Custom Search APIを使う場合：** **「シークレットを参照」** で以下を追加：
 
 | シークレット名 | 環境変数名 | 説明 |
 |---------------|-----------|------|
 | `GOOGLE_API_KEY` | `GOOGLE_API_KEY` | Google Custom Search API |
 | `GOOGLE_SEARCH_ENGINE_ID` | `GOOGLE_SEARCH_ENGINE_ID` | カスタム検索エンジンID |
+
+**Serper APIを使う場合：** **「シークレットを参照」** で以下を追加：
+
+| シークレット名 | 環境変数名 | 説明 |
+|---------------|-----------|------|
+| `SERPER_API_KEY` | `SERPER_API_KEY` | Serper API認証キー |
 
 > **注意**: これらが未設定の場合、フル自動モード（競合分析）でエラーになります。
 > 手動モード（キーワードのみ入力）は設定なしでも使用できます。
@@ -807,10 +831,15 @@ gcloud run services update backend-server \
   --region=asia-northeast1 \
   --set-env-vars="NODE_ENV=production,SEO_FRONTEND_URL=https://seo-frontend-xxxxx-an.a.run.app,IMAGE_AGENT_URL=https://ai-article-imager-xxxxx-an.a.run.app"
 
-# シークレットを環境変数として追加
+# シークレットを環境変数として追加（Custom Search APIの場合）
 gcloud run services update backend-server \
   --region=asia-northeast1 \
   --set-secrets="INTERNAL_API_KEY=INTERNAL_API_KEY:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest,GOOGLE_SEARCH_ENGINE_ID=GOOGLE_SEARCH_ENGINE_ID:latest"
+
+# シークレットを環境変数として追加（Serper APIの場合）
+# gcloud run services update backend-server \
+#   --region=asia-northeast1 \
+#   --set-secrets="INTERNAL_API_KEY=INTERNAL_API_KEY:latest,SERPER_API_KEY=SERPER_API_KEY:latest"
 ```
 
 ### 9.3 Cloud Runサービスアカウントへの権限付与
@@ -825,8 +854,8 @@ PROJECT_ID=$(gcloud config get-value project)
 # Cloud Runのデフォルトサービスアカウント
 CLOUDRUN_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 
-# シークレットへのアクセス権限を付与
-for SECRET in INTERNAL_API_KEY GOOGLE_API_KEY GOOGLE_SEARCH_ENGINE_ID; do
+# シークレットへのアクセス権限を付与（作成したシークレットに応じて調整）
+for SECRET in INTERNAL_API_KEY GOOGLE_API_KEY GOOGLE_SEARCH_ENGINE_ID SERPER_API_KEY; do
   gcloud secrets add-iam-policy-binding $SECRET \
     --member="serviceAccount:${CLOUDRUN_SA}" \
     --role="roles/secretmanager.secretAccessor" \

@@ -35,8 +35,13 @@
 |-----------|------|--------|
 | Node.js | このツールを動かすために必要なソフト | [公式サイト](https://nodejs.org/)からダウンロード（v18以上） |
 | Gemini APIキー | AIが記事を書くために必要 | [Google AI Studio](https://aistudio.google.com/)で無料取得 |
-| Custom Search APIキー | 競合サイトを調べるために必要 | [Google Cloud Console](https://console.cloud.google.com/)で取得 |
-| カスタム検索エンジンID | 上記と一緒に使う | [Programmable Search Engine](https://programmablesearchengine.google.com/)で作成 |
+| Custom Search APIキー | 競合サイトを調べるために必要（※） | [Google Cloud Console](https://console.cloud.google.com/)で取得 |
+| カスタム検索エンジンID | 上記と一緒に使う（※） | [Programmable Search Engine](https://programmablesearchengine.google.com/)で作成 |
+
+> **※ Custom Search API が使えない場合**
+> 新規GCPプロジェクトでCustom Search APIを有効化できない場合（403エラー）は、代わりに **Serper API** が使えます。
+> [serper.dev](https://serper.dev) でアカウントを作成すると、2,500クレジット（約1,250記事分）が無料で付与されます。
+> `.env` に `SERPER_API_KEY` を設定するだけで、他の手順は同じです。
 
 ---
 
@@ -78,15 +83,16 @@ npm install
 GEMINI_API_KEY=ここにあなたのGemini APIキーを貼り付け
 VITE_GEMINI_API_KEY=ここにも同じキーを貼り付け
 
-# Google API（複数の機能で使用）
-# ※ このキーは以下の2つの機能で共通使用されます：
-#    1. Custom Search API（競合調査）
-#    2. Google Drive API（自社実績データ取得）
-# → Google Cloud Consoleで両方のAPIを有効化してください
+# 競合調査用（どちらか一方を設定）
+#
+# 【推奨】Google Custom Search API
 GOOGLE_API_KEY=ここにGoogle APIキーを貼り付け
 VITE_GOOGLE_API_KEY=ここにも同じキーを貼り付け
 GOOGLE_SEARCH_ENGINE_ID=ここに検索エンジンIDを貼り付け
 VITE_GOOGLE_SEARCH_ENGINE_ID=ここにも同じIDを貼り付け
+#
+# 【代替】Custom Search APIが使えない場合はSerper APIを設定
+# SERPER_API_KEY=ここにSerper APIキーを貼り付け
 
 # バックエンド認証（競合調査/スプレッドシート/Slack/WordPress連携などで使用）
 # 例）openssl rand -hex 32 で生成した値を貼り付け
