@@ -39,7 +39,7 @@
 | カスタム検索エンジンID | 上記と一緒に使う（※） | [Programmable Search Engine](https://programmablesearchengine.google.com/)で作成 |
 
 > **※ Custom Search API が使えない場合**
-> 新規GCPプロジェクトでCustom Search APIを有効化できない場合（403エラー）は、代わりに **Serper API** が使えます。
+> 新規GCPプロジェクトでCustom Search APIを有効化できない場合（403エラー）は、代わりに **Serper** が使えます。
 > [serper.dev](https://serper.dev) でアカウントを作成すると、2,500クレジット（約1,250記事分）が無料で付与されます。
 > `.env` に `SERPER_API_KEY` を設定するだけで、他の手順は同じです。
 
